@@ -4,4 +4,5 @@ This project demonstrates my ability in fundamental SQL queries. I initially lea
 
 → Here is a graphic illustrating the Uni-Database in German
 
-![Here is a graphic illustrating the Uni-Database in German](Uni-database-German.jpg)
+
+![Uni-database-German](https://github.com/Janet-Cajavilca/SQL/assets/93542752/605ad936-6b97-49df-a61c-fcd714658eef)
