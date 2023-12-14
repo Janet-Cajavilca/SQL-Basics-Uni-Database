@@ -1,4 +1,4 @@
-# SQL Insights: Uni-Database Showcase
+# SQL Basics: Uni-Database Practice
 
 This small project demonstrates my ability in fundamental SQL queries. I initially learned these skills during the lecture 'Database: Fundamentals' at TUM Munich, led by Professor Alfons Kemper. I will utilize Professor Kemper's compact University Database schema, initially in German, to implement some fundamental SQL queries. First, I'll translate the table names into English and create a small database using **PostgreSQL 16**. After that, I'll apply the basic SQL queries I've learned to solve the tasks listed below
 
