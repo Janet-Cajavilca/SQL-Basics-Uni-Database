@@ -1,0 +1,296 @@
+--Solutions
+
+1. Create tables in the UniDatabase using PostgreSQL.
+
+CREATE TABLE students
+       (MatrNr         INTEGER PRIMARY KEY,
+        Name           VARCHAR(30) NOT NULL,
+        Semester       INTEGER);
+
+CREATE TABLE professors
+       (PersNr         INTEGER PRIMARY KEY,
+        Name           VARCHAR(30) NOT NULL,
+        Rank           CHAR(2) CHECK (Rank in ('C2', 'C3', 'C4')),
+        Room           INTEGER UNIQUE);
+
+CREATE TABLE assistants
+       (PersNr         INTEGER PRIMARY KEY,
+        Name           VARCHAR(30) NOT NULL,
+        SubjectArea     VARCHAR(30),
+        Boss           INTEGER,
+        FOREIGN KEY    (Boss) REFERENCES Professors);
+
+CREATE TABLE lectures
+       (LectNr         INTEGER PRIMARY KEY,
+        Tittle          VARCHAR(30),
+        SWS            INTEGER,
+       taughtBy     INTEGER REFERENCES Professors);
+
+CREATE TABLE attend
+       (MatrNr         INTEGER REFERENCES students ON DELETE CASCADE,
+        LectNr         INTEGER REFERENCES lectures ON DELETE CASCADE,
+        PRIMARY KEY    (MatrNr, LectNr));
+
+CREATE TABLE prerequisites
+       (Predecessors     INTEGER REFERENCES lectures ON DELETE CASCADE,
+        Successors     INTEGER REFERENCES lectures ON DELETE NO ACTION,
+        PRIMARY KEY    (Predecessors, Successors));
+
+CREATE TABLE test
+       (MatrNr         INTEGER REFERENCES students ON DELETE CASCADE,
+        LectNr         INTEGER REFERENCES lectures,
+        PersNr         INTEGER REFERENCES professors,
+        Grade           NUMERIC(2,1) CHECK (Grade between 0.7 and 5.0),
+        PRIMARY KEY    (MatrNr, LectNr));
+
+
+2. Insert values into each table.
+
+-- Entering Data into the student Table
+
+INSERT INTO students (MatrNr, Name, Semester) 
+VALUES (24002, 'Xenokrates', 18), 
+(25403, 'Jonas', 12), 
+ (26120, 'Fichte', 10), 
+(26830, 'Aristoxenos', 8), 
+ (27550, 'Schopenhauer', 6), 
+(28106, 'Carnap', 3),
+ (29120, 'Theophrastos', 2), 
+ (29555, 'Feuerbach', 2);
+
+-- Entering Data into the professorsTable
+
+INSERT INTO professors(PersNr, Name, Rank, Room) 
+VALUES (2125, 'Sokrates', 'C4', 226), 
+(2126, 'Russel', 'C4', 232),  
+(2127, 'Kopernikus', 'C3', 310),
+(2133, 'Popper', 'C3', 052), 
+(2134, 'Augustinus', 'C3', 309), 
+(2136, 'Curie', 'C4', 036), 
+(2137, 'Kant', 'C4', 007); 
+
+-- Entering Data into the assistans Table
+
+INSERT INTO assistants(PersNr, Name, subjectArea, Boss) 
+VALUES (3002, 'Platon', 'Theory of Ideas', 2125), 
+ (3003, 'Aristoteles', 'Syllogistics', 2125), 
+ (3004, 'Wittgenstein', 'Theory of Language', 2126), 
+ (3005, 'Rhetikus', 'Planetary Motion', 2127), 
+ (3006, 'Newton', 'Kepler´s Laws', 2127), 
+ (3007, 'Spinoza', 'God und Nature', 2134); 
+
+-- Entering Data into the lectures Table
+
+INSERT INTO lectures (LectNr, Title, SWS, taughtBy) 
+VALUES (5001, 'Fundamentals', 4, 2137),
+(5041, 'Ethics', 4, 2125),
+(5043, 'Epistemology', 3, 2126),
+(5049, 'Maieutics', 2, 2125),
+(4052, 'Logic', 4, 2125),
+(5052, 'Philosophy of Science', 3, 2126),
+(5216, 'Bioethics', 2, 2126), 
+(5259, 'The Vienna Circle', 2, 2133), 
+(5022, 'Faith and Knowledge', 2, 2134), 
+(4630, 'The Three Critiques', 4, 2137); 
+
+
+-- Entering Data into the attend Table
+
+INSERT INTO attend(MatrNr, LectNr) 
+VALUES (26120, 5001), 
+(27550, 5001), 
+(27550, 4052), 
+(28106, 5041), 
+(28106, 5052), 
+(28106, 5216), 
+(28106, 5259), 
+(29120, 5001), 
+(29120, 5041), 
+(29120, 5049), 
+(29555, 5022), 
+(25403, 5022),   
+(29555, 5001);  
+ 
+
+-- Entering Data into the prerequisites Table
+
+INSERT INTO prerequisites(predecessors, successors) 
+VALUES (5001, 5041), 
+ (5001, 5043), 
+ (5001, 5049), 
+ (5041, 5216),  
+ (5043, 5052),  
+ (5041, 5052), 
+ (5052, 5259); 
+
+-- Entering Data into the test Table
+
+INSERT INTO pruefen(MatrNr, VorlNr, PersNr, Note) 
+VALUES (28106, 5001, 2126, 1.0),
+(25403, 5041, 2125, 2.0),
+(27550, 4630, 2137, 2.0);
+
+3. Find the lectures that have no listeners.
+
+--  Find the lectures that have no listeners.
+SELECT l.title
+FROM lectures l LEFT JOIN attend att
+ON att.LectNr = l.LectNr
+WHERE matrnr IS null
+
+4. Find the students who attend all lectures.
+
+-- Find the students who attend all lectures
+
+SELECT s.matrNr, COUNT(l.lectnr) AS LectureCount
+FROM students s
+LEFT JOIN attend att ON att.matrNr = s.matrNr
+LEFT JOIN lectures l ON att.lectnr = l.lectnr
+GROUP BY s.matrNr
+HAVING COUNT(l.lectnr) = (SELECT COUNT(*) FROM lectures);
+
+
+-- Empty rows as result means that none of the students are attending all lectures
+
+ 5. Find the students who know Professor Sokrates from lecture(s).
+
+-- Find the students who know Professor Sokrates from lecture(s).
+
+SELECT DISTINCT s.name
+FROM students s
+LEFT JOIN attend att ON s.matrnr = att.matrnr
+LEFT JOIN lectures l ON l.lectnr = att.lectnr
+LEFT JOIN professors pr ON l.taughtBy = pr.persnr
+WHERE pr.name = 'Sokrates';
+
+6. Find the students who attend lectures that Fichte also attends.
+
+-- Find the students who attend lectures that Fichte also attends.
+WITH FichteLecture AS (
+    SELECT att.lectnr
+    FROM students s
+    LEFT JOIN attend att ON s.matrnr = att.matrnr
+    WHERE s.name = 'Fichte'
+)
+SELECT DISTINCT s.name
+FROM attend att
+RIGHT JOIN students s ON s.matrnr = att.matrnr
+WHERE att.lectnr IN (SELECT lectnr FROM FichteLecture)
+AND s.name != 'Fichte';
+
+
+Another solution:
+
+
+SELECT DISTINCT s1.name
+FROM students s1 , students s2 , attend att1 , attend att2
+WHERE s1.matrNr = att1.matrNr
+AND s1.matrNr != s2.matrNr
+AND s2.matrNr = att2.matrNr
+AND att1.lectNr = att2.lectNr
+AND s2.name = 'Fichte';
+
+
+
+7. Find the assistants of professors who have taught the student Carnap – for example, as potential supervisors for his bachelor thesis.
+
+-- Find the assistants of professors who have taught the student Carnap
+-- for example, as potential supervisors for his bachelor thesis.
+WITH LecturesCarnap AS (
+    SELECT DISTINCT att.lectnr
+    FROM students s
+    LEFT JOIN attend att ON s.matrnr = att.matrnr
+    WHERE s.name = 'Carnap'
+)
+SELECT DISTINCT ast.name
+FROM lectures l
+LEFT JOIN professors pr ON l.taughtBy = pr.persnr
+LEFT JOIN assistants ast ON pr.persnr = ast.boss
+WHERE l.lectnr IN (SELECT lectnr FROM LecturesCarnap)
+AND ast.name IS NOT NULL;
+Provide the names of professors known by Theophrastos from lectures.
+
+8. Provide the names of professors known by Theophrastos from lectures.
+
+SELECT DISTINCT pr.name
+FROM students s 
+LEFT JOIN attend att ON s.matrnr = att.matrnr
+LEFT JOIN lectures l ON att.lectnr = l.lectnr
+LEFT JOIN professors pr ON l.taughtby = pr.persnr
+WHERE s.name = 'Theophrastos'
+
+
+9. Which lectures are attended by students in the bachelor's program (1st – 6th semester)? Provide the titles of these lectures.
+
+-- Which lectures are attended by students in the bachelor's program (1st – 6th semester)? 
+-- Provide the titles of these lectures.
+
+SELECT DISTINCT l.tittle 
+FROM students s 
+LEFT JOIN attend att ON s.matrnr = att.matrnr 
+LEFT JOIN lectures l ON att.lectnr = l.lectnr
+WHERE s.semester BETWEEN 1 AND 6;
+
+10. Determine, for each lecture, how many students are attending it. Include lectures without attendees. Sort the results in descending order by the number of attendees.
+
+--  Determine, for each lecture, how many students are attending it. 
+-- Include lectures without attendees. 
+-- Sort the results in descending order by the number of attendees.
+
+SELECT l.title, COUNT (s.matrnr) AS NrStudents
+FROM lectures l 
+LEFT JOIN attend att ON l.lectnr = att.lectnr
+LEFT JOIN students s ON att.matrnr = s.matrnr
+GROUP BY l.title
+ORDER BY NrStudents DESC;
+ 11. All professors who have the rank C3 will be promoted to the rank C4. To achieve this, set the rank of all C3 professors to C4.
+
+-- Update the rank for professors from C3 to C4
+UPDATE professors
+SET rank = 'C4'
+WHERE rank = 'C3';
+
+12. The movements of planets are fully researched. Delete all assistants with this field of study.
+
+-- Remove the assistants in the field of 'Planetary Motion
+DELETE FROM assistants
+WHERE subjectarea = 'Planetary Motion'
+ 
+13. Create a new lecture with the name "Foundations: Databases" and the number 5278. Professor Curie holds the lecture and has "Logic" as a prerequisite. It should last for 4 SWS (semester weeks). Enroll the student with the matriculation number 28106 as a listener for the lecture.
+
+-- Before solving this assignment, we need the personnel number for Professor Curie, and we also need the number of the lecture 'Logic
+
+-- What is the personnel number for Professor Curie?
+
+SELECT persnr
+FROM professors
+WHERE name = 'Curie'
+
+--  What is the number of the lecture 'Logic'
+
+SELECT lectnr
+FROM lectures
+WHERE title = 'Logic'
+
+-- Now we have the information we need to solve the assignment:
+
+
+ -- Create a new lecture with the name "Foundations: Databases" and the number 5278. 
+ -- Professor Curie holds the lecture and has "Logic" as a prerequisite. 
+ -- It should last for 4 SWS (semester weeks). 
+ -- Enroll the student with the matriculation number 28106 as a listener for the lecture
+
+INSERT INTO lectures (lectnr, title, SWS,taughtBy)
+VALUES (5278, 'Foundations:Databases', 4, 2136);
+
+INSERT INTO prerequisites (predecessors, successors)
+VALUES (4052,5278);
+
+INSERT INTO attend (matrnr, lectnr)
+VALUES (28106,5278);
+
+
+
+
+
+
